@@ -347,27 +347,146 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReportData(filters: { timeRange?: string; discipline?: string }): Promise<any> {
-    // Simple mock for now - would need more complex queries for real reporting
-    const allArtists = await this.getAllArtists();
-    const allApplications = await this.getAllApplications();
+    // Calculate date range based on timeRange filter
+    let dateFilter: any = undefined;
+    const now = new Date();
+    
+    if (filters.timeRange === 'month') {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      dateFilter = gte(applications.submittedDate, monthAgo);
+    } else if (filters.timeRange === 'quarter') {
+      const quarterAgo = new Date(now);
+      quarterAgo.setMonth(now.getMonth() - 3);
+      dateFilter = gte(applications.submittedDate, quarterAgo);
+    } else if (filters.timeRange === 'year') {
+      const yearAgo = new Date(now);
+      yearAgo.setFullYear(now.getFullYear() - 1);
+      dateFilter = gte(applications.submittedDate, yearAgo);
+    }
+
+    // Get all artists (filter by discipline if specified)
+    const filteredArtists = filters.discipline && filters.discipline !== 'all'
+      ? await db.select().from(artists).where(eq(artists.discipline, filters.discipline as any))
+      : await db.select().from(artists);
+
+    // Get applications with optional filters
+    let filteredApplications: Application[];
+    
+    if (filters.discipline && filters.discipline !== 'all') {
+      // If discipline filter is set, join with artists to filter applications
+      const artistIds = filteredArtists.map(a => a.id);
+      
+      if (artistIds.length === 0) {
+        // No artists match the discipline, so no applications either
+        filteredApplications = [];
+      } else if (dateFilter) {
+        filteredApplications = await db.select().from(applications)
+          .where(and(
+            inArray(applications.artistId, artistIds),
+            dateFilter
+          ));
+      } else {
+        filteredApplications = await db.select().from(applications)
+          .where(inArray(applications.artistId, artistIds));
+      }
+    } else {
+      // No discipline filter, just apply date filter if present
+      filteredApplications = dateFilter
+        ? await db.select().from(applications).where(dateFilter)
+        : await db.select().from(applications);
+    }
+
+    // Calculate byDiscipline - count artists by discipline
+    const disciplineCounts: Record<string, number> = {};
+    filteredArtists.forEach(artist => {
+      const discipline = artist.discipline || 'other';
+      disciplineCounts[discipline] = (disciplineCounts[discipline] || 0) + 1;
+    });
+
+    const byDiscipline = Object.entries(disciplineCounts).map(([discipline, count]) => ({
+      discipline: this.translateDiscipline(discipline),
+      count
+    }));
+
+    // Calculate byStatus - count applications by status
+    const statusCounts: Record<string, number> = {
+      draft: 0,
+      in_progress: 0,
+      submitted: 0,
+      accepted: 0,
+      rejected: 0
+    };
+    
+    filteredApplications.forEach(app => {
+      const status = app.status || 'draft';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    const byStatus = Object.entries(statusCounts).map(([status, count]) => ({
+      status: this.translateStatus(status),
+      count
+    }));
+
+    // Calculate fundingByMonth - aggregate funding by month
+    const fundingByMonth: Record<string, number> = {};
+    
+    filteredApplications
+      .filter(app => app.status === 'accepted' && app.submittedDate)
+      .forEach(app => {
+        const date = new Date(app.submittedDate!);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        fundingByMonth[monthKey] = (fundingByMonth[monthKey] || 0) + (app.fundingAmount || 0);
+      });
+
+    // Convert to array and sort by month
+    const fundingByMonthArray = Object.entries(fundingByMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, amount]) => ({
+        month: this.formatMonth(month),
+        amount
+      }));
 
     return {
-      totalArtists: allArtists.length,
-      totalApplications: allApplications.length,
-      acceptedApplications: allApplications.filter(a => a.status === 'accepted').length,
-      totalFunding: allApplications
+      totalArtists: filteredArtists.length,
+      totalApplications: filteredApplications.length,
+      acceptedApplications: filteredApplications.filter(a => a.status === 'accepted').length,
+      totalFunding: filteredApplications
         .filter(a => a.status === 'accepted')
         .reduce((sum, a) => sum + (a.fundingAmount || 0), 0),
-      byDiscipline: [],
-      byStatus: [
-        { status: 'draft', count: allApplications.filter(a => a.status === 'draft').length },
-        { status: 'in_progress', count: allApplications.filter(a => a.status === 'in_progress').length },
-        { status: 'submitted', count: allApplications.filter(a => a.status === 'submitted').length },
-        { status: 'accepted', count: allApplications.filter(a => a.status === 'accepted').length },
-        { status: 'rejected', count: allApplications.filter(a => a.status === 'rejected').length },
-      ],
-      fundingByMonth: [],
+      byDiscipline,
+      byStatus,
+      fundingByMonth: fundingByMonthArray,
     };
+  }
+
+  private translateDiscipline(discipline: string): string {
+    const translations: Record<string, string> = {
+      visual_arts: 'Arts visuels',
+      music: 'Musique',
+      theater: 'Théâtre',
+      dance: 'Danse',
+      literature: 'Littérature',
+      other: 'Autre'
+    };
+    return translations[discipline] || discipline;
+  }
+
+  private translateStatus(status: string): string {
+    const translations: Record<string, string> = {
+      draft: 'Brouillon',
+      in_progress: 'En cours',
+      submitted: 'Soumise',
+      accepted: 'Acceptée',
+      rejected: 'Refusée'
+    };
+    return translations[status] || status;
+  }
+
+  private formatMonth(monthKey: string): string {
+    const [year, month] = monthKey.split('-');
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    return `${months[parseInt(month) - 1]} ${year}`;
   }
 }
 
