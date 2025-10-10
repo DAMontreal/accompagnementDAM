@@ -90,9 +90,17 @@ Preferred communication style: Simple, everyday language.
 - WebSocket-based connection via `@neondatabase/serverless` package
 - Drizzle Kit for schema migrations and database push operations
 
-**Third-Party Integrations (Planned/Referenced):**
-- Calendly integration for appointment scheduling (interactions marked with type `calendly_appointment`)
-- Outlook/email system integration for archiving important communications
+**Third-Party Integrations:**
+- **Outlook Integration (COMPLETED)**: Email archiving functionality implemented via Replit Outlook connector
+  - Backend module: `server/outlook.ts` using Microsoft Graph Client
+  - API endpoints: GET /api/outlook/emails/search, POST /api/outlook/emails/:messageId/archive
+  - Frontend: OutlookEmailArchive component in "Emails" tab on artist detail page
+  - Archived emails stored as interactions with type="email"
+  - Proper cache invalidation using query key ["/api/artists", artistId, "interactions"]
+- **Google Calendar Integration (NOT IMPLEMENTED)**: User declined Replit connector setup
+  - Alternative: Manual Calendly integration or direct Google Calendar API with user-provided credentials
+  - Note: If needed in future, request Google Calendar API credentials from user or use Replit connector
+- **CSV Export (COMPLETED)**: Artist list and reports data export with UTF-8 encoding
 - File storage system for document management (currently using local uploads directory)
   - NOTE: Production should use Replit Object Storage for proper file handling
   - Current implementation has file validation (PDF, DOC, DOCX, JPG, PNG) and 10MB size limit
