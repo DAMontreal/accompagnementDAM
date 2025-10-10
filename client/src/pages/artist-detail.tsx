@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AccompanimentPlanTab } from "@/components/accompaniment-plan-tab";
 import { DocumentsTab } from "@/components/documents-tab";
+import { OutlookEmailArchive } from "@/components/outlook-email-archive";
 
 const disciplineLabels: Record<string, string> = {
   visual_arts: "Arts visuels",
@@ -156,10 +157,14 @@ export default function ArtistDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="interactions" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
           <TabsTrigger value="interactions" data-testid="tab-interactions">
             <History className="h-4 w-4 mr-2" />
             Historique
+          </TabsTrigger>
+          <TabsTrigger value="outlook" data-testid="tab-outlook">
+            <Mail className="h-4 w-4 mr-2" />
+            Emails
           </TabsTrigger>
           <TabsTrigger value="plan" data-testid="tab-plan">
             <Target className="h-4 w-4 mr-2" />
@@ -219,6 +224,10 @@ export default function ArtistDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="outlook" className="mt-6">
+          <OutlookEmailArchive artistId={artistId!} artistEmail={artist.email} />
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">

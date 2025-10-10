@@ -15,6 +15,7 @@ import {
   insertEmailCampaignSchema,
   insertAccompanimentPlanSchema,
 } from "@shared/schema";
+import { getRecentEmails, searchEmailsByAddress, getEmailById } from "./outlook";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Artists endpoints
@@ -490,6 +491,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating report:", error);
       res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  // Outlook email endpoints
+  app.get("/api/outlook/emails/recent", async (_req, res) => {
+    try {
+      const emails = await getRecentEmails(50);
+      res.json(emails);
+    } catch (error) {
+      console.error("Error fetching Outlook emails:", error);
+      res.status(500).json({ error: "Failed to fetch emails from Outlook" });
+    }
+  });
+
+  app.get("/api/outlook/emails/search", async (req, res) => {
+    try {
+      const emailAddress = req.query.email as string;
+      if (!emailAddress) {
+        return res.status(400).json({ error: "Email address required" });
+      }
+      const emails = await searchEmailsByAddress(emailAddress);
+      res.json(emails);
+    } catch (error) {
+      console.error("Error searching Outlook emails:", error);
+      res.status(500).json({ error: "Failed to search emails" });
+    }
+  });
+
+  app.get("/api/outlook/emails/:messageId", async (req, res) => {
+    try {
+      const email = await getEmailById(req.params.messageId);
+      res.json(email);
+    } catch (error) {
+      console.error("Error fetching email details:", error);
+      res.status(500).json({ error: "Failed to fetch email details" });
+    }
+  });
+
+  // Archive email as interaction
+  app.post("/api/outlook/emails/:messageId/archive", async (req, res) => {
+    try {
+      const { artistId } = req.body;
+      if (!artistId) {
+        return res.status(400).json({ error: "Artist ID required" });
+      }
+
+      // Get email details from Outlook
+      const email = await getEmailById(req.params.messageId);
+      
+      // Create interaction from email
+      const interactionData = {
+        artistId,
+        type: "email" as const,
+        title: email.subject,
+        date: new Date(email.receivedDateTime),
+        notes: `Email archivé depuis Outlook\n\nDe: ${email.from.emailAddress.name} <${email.from.emailAddress.address}>\n\n${email.body?.content || email.bodyPreview || ''}`
+      };
+
+      const interaction = await storage.createInteraction(interactionData);
+      res.status(201).json(interaction);
+    } catch (error) {
+      console.error("Error archiving email:", error);
+      res.status(500).json({ error: "Failed to archive email" });
     }
   });
 
