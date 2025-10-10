@@ -14,8 +14,10 @@ import {
   insertWaitlistSchema,
   insertEmailCampaignSchema,
   insertAccompanimentPlanSchema,
+  createOutlookEventSchema,
+  syncOutlookEventSchema,
 } from "@shared/schema";
-import { getRecentEmails, searchEmailsByAddress, getEmailById } from "./outlook";
+import { getRecentEmails, searchEmailsByAddress, getEmailById, getCalendarEvents, searchEventsByAttendee, createCalendarEvent, getEventById } from "./outlook";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Artists endpoints
@@ -554,6 +556,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error archiving email:", error);
       res.status(500).json({ error: "Failed to archive email" });
+    }
+  });
+
+  // Outlook calendar endpoints
+  app.get("/api/outlook/calendar/events", async (req, res) => {
+    try {
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const events = await getCalendarEvents(startDate, endDate);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  });
+
+  app.get("/api/outlook/calendar/events/search", async (req, res) => {
+    try {
+      const emailAddress = req.query.email as string;
+      if (!emailAddress) {
+        return res.status(400).json({ error: "Email address required" });
+      }
+      const events = await searchEventsByAttendee(emailAddress);
+      res.json(events);
+    } catch (error) {
+      console.error("Error searching calendar events:", error);
+      res.status(500).json({ error: "Failed to search calendar events" });
+    }
+  });
+
+  app.get("/api/outlook/calendar/events/:eventId", async (req, res) => {
+    try {
+      const event = await getEventById(req.params.eventId);
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching event details:", error);
+      res.status(500).json({ error: "Failed to fetch event details" });
+    }
+  });
+
+  app.post("/api/outlook/calendar/events", async (req, res) => {
+    try {
+      const validatedData = createOutlookEventSchema.parse(req.body);
+      const event = await createCalendarEvent(validatedData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid event data" });
+      }
+      res.status(500).json({ error: "Failed to create calendar event" });
+    }
+  });
+
+  // Sync calendar event to interaction
+  app.post("/api/outlook/calendar/events/:eventId/sync", async (req, res) => {
+    try {
+      const validatedData = syncOutlookEventSchema.parse(req.body);
+
+      // Get event details from Outlook
+      const event = await getEventById(req.params.eventId);
+      
+      // Create interaction from calendar event
+      const interactionData = {
+        artistId: validatedData.artistId,
+        type: "meeting" as const,
+        title: event.subject,
+        date: new Date(event.start.dateTime),
+        notes: `Rendez-vous Outlook synchronisé\n\nDate: ${new Date(event.start.dateTime).toLocaleString('fr-FR')}\nLieu: ${event.location?.displayName || 'Non spécifié'}\n\n${event.body?.content || ''}`
+      };
+
+      const interaction = await storage.createInteraction(interactionData);
+      res.status(201).json(interaction);
+    } catch (error) {
+      console.error("Error syncing calendar event:", error);
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid sync data" });
+      }
+      res.status(500).json({ error: "Failed to sync calendar event" });
     }
   });
 

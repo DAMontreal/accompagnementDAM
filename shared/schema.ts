@@ -309,3 +309,42 @@ export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;
 
 export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+
+// Outlook Calendar Event schemas (not stored in DB, used for API validation)
+export const outlookEventTimeSchema = z.object({
+  dateTime: z.string(),
+  timeZone: z.string(),
+});
+
+export const outlookEventLocationSchema = z.object({
+  displayName: z.string(),
+}).optional();
+
+export const outlookEventAttendeeSchema = z.object({
+  emailAddress: z.object({
+    address: z.string().email(),
+    name: z.string().optional(),
+  }),
+  type: z.enum(["required", "optional", "resource"]),
+});
+
+export const outlookEventBodySchema = z.object({
+  contentType: z.enum(["text", "html"]),
+  content: z.string(),
+}).optional();
+
+export const createOutlookEventSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  start: outlookEventTimeSchema,
+  end: outlookEventTimeSchema,
+  location: outlookEventLocationSchema,
+  attendees: z.array(outlookEventAttendeeSchema).optional(),
+  body: outlookEventBodySchema,
+});
+
+export const syncOutlookEventSchema = z.object({
+  artistId: z.string().min(1, "Artist ID is required"),
+});
+
+export type CreateOutlookEvent = z.infer<typeof createOutlookEventSchema>;
+export type SyncOutlookEvent = z.infer<typeof syncOutlookEventSchema>;

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase } from "lucide-react";
+import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { fr } from "date-fns/locale";
 import { AccompanimentPlanTab } from "@/components/accompaniment-plan-tab";
 import { DocumentsTab } from "@/components/documents-tab";
 import { OutlookEmailArchive } from "@/components/outlook-email-archive";
+import { OutlookCalendar } from "@/components/outlook-calendar";
 
 const disciplineLabels: Record<string, string> = {
   visual_arts: "Arts visuels",
@@ -157,7 +158,7 @@ export default function ArtistDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="interactions" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-3xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-4xl">
           <TabsTrigger value="interactions" data-testid="tab-interactions">
             <History className="h-4 w-4 mr-2" />
             Historique
@@ -165,6 +166,10 @@ export default function ArtistDetail() {
           <TabsTrigger value="outlook" data-testid="tab-outlook">
             <Mail className="h-4 w-4 mr-2" />
             Emails
+          </TabsTrigger>
+          <TabsTrigger value="calendar" data-testid="tab-calendar">
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            Calendrier
           </TabsTrigger>
           <TabsTrigger value="plan" data-testid="tab-plan">
             <Target className="h-4 w-4 mr-2" />
@@ -228,6 +233,14 @@ export default function ArtistDetail() {
 
         <TabsContent value="outlook" className="mt-6">
           <OutlookEmailArchive artistId={artistId!} artistEmail={artist.email} />
+        </TabsContent>
+
+        <TabsContent value="calendar" className="mt-6">
+          <OutlookCalendar
+            artistId={artistId!}
+            artistEmail={artist.email}
+            artistName={`${artist.firstName} ${artist.lastName}`}
+          />
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">

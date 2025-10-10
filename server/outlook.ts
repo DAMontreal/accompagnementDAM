@@ -89,3 +89,81 @@ export async function getEmailById(messageId: string) {
   
   return message;
 }
+
+// Get calendar events
+export async function getCalendarEvents(startDate?: Date, endDate?: Date, maxResults: number = 50) {
+  const client = await getUncachableOutlookClient();
+  
+  let query = client
+    .api('/me/calendar/events')
+    .top(maxResults)
+    .select('subject,start,end,location,attendees,body,organizer,webLink')
+    .orderby('start/dateTime DESC');
+  
+  // Apply date filters if provided
+  if (startDate || endDate) {
+    const filters: string[] = [];
+    
+    if (startDate) {
+      const startISO = startDate.toISOString();
+      filters.push(`start/dateTime ge '${startISO}'`);
+    }
+    
+    if (endDate) {
+      const endISO = endDate.toISOString();
+      filters.push(`end/dateTime le '${endISO}'`);
+    }
+    
+    if (filters.length > 0) {
+      query = query.filter(filters.join(' and '));
+    }
+  }
+  
+  const events = await query.get();
+  return events.value;
+}
+
+// Search calendar events by attendee email
+export async function searchEventsByAttendee(emailAddress: string, maxResults: number = 20) {
+  const client = await getUncachableOutlookClient();
+  
+  const events = await client
+    .api('/me/calendar/events')
+    .filter(`attendees/any(a:a/emailAddress/address eq '${emailAddress}')`)
+    .top(maxResults)
+    .select('subject,start,end,location,attendees,body,organizer,webLink')
+    .orderby('start/dateTime DESC')
+    .get();
+  
+  return events.value;
+}
+
+// Create calendar event
+export async function createCalendarEvent(eventData: {
+  subject: string;
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+  location?: { displayName: string };
+  attendees?: Array<{ emailAddress: { address: string; name?: string }; type: string }>;
+  body?: { contentType: string; content: string };
+}) {
+  const client = await getUncachableOutlookClient();
+  
+  const event = await client
+    .api('/me/calendar/events')
+    .post(eventData);
+  
+  return event;
+}
+
+// Get event by ID
+export async function getEventById(eventId: string) {
+  const client = await getUncachableOutlookClient();
+  
+  const event = await client
+    .api(`/me/calendar/events/${eventId}`)
+    .select('subject,start,end,location,attendees,body,organizer,webLink')
+    .get();
+  
+  return event;
+}

@@ -91,11 +91,15 @@ Preferred communication style: Simple, everyday language.
 - Drizzle Kit for schema migrations and database push operations
 
 **Third-Party Integrations:**
-- **Outlook Integration (COMPLETED)**: Email archiving functionality implemented via Replit Outlook connector
+- **Outlook Integration (COMPLETED)**: Email and calendar integration via Replit Outlook connector
   - Backend module: `server/outlook.ts` using Microsoft Graph Client
-  - API endpoints: GET /api/outlook/emails/search, POST /api/outlook/emails/:messageId/archive
-  - Frontend: OutlookEmailArchive component in "Emails" tab on artist detail page
+  - Email endpoints: GET /api/outlook/emails/search, POST /api/outlook/emails/:messageId/archive
+  - Calendar endpoints: GET /api/outlook/calendar/events/search, POST /api/outlook/calendar/events, POST /api/outlook/calendar/events/:eventId/sync
+  - Frontend components:
+    - OutlookEmailArchive component in "Emails" tab for email archiving
+    - OutlookCalendar component in "Calendrier" tab for viewing/creating appointments
   - Archived emails stored as interactions with type="email"
+  - Synced calendar events stored as interactions with type="meeting"
   - Proper cache invalidation using query key ["/api/artists", artistId, "interactions"]
 - **Google Calendar Integration (NOT IMPLEMENTED)**: User declined Replit connector setup
   - Alternative: Manual Calendly integration or direct Google Calendar API with user-provided credentials
