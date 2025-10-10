@@ -1,0 +1,34 @@
+Synthèse du CRM sur Mesure pour l'Accompagnement d'Artistes
+Ce logiciel est un outil interne centralisé, conçu pour optimiser l'efficacité de votre équipe, structurer le suivi des artistes de la diversité et maximiser l'impact de vos actions.
+Il s'articule autour de cinq piliers fondamentaux :
+Pilier 1 : Le Cœur du Système – La Fiche Artiste 360°
+Chaque artiste membre dispose d'un dossier unique et complet qui centralise toutes les informations le concernant.
+Profil Détaillé : Coordonnées, discipline artistique, portfolio, démarche, et notes internes confidentielles pour l'équipe.
+Historique Complet des Interactions : Un journal de bord qui enregistre automatiquement les rendez-vous pris sur Calendly, permet d'archiver les courriels importants depuis Outlook, et de consigner manuellement les appels et rencontres.
+Plan d'Accompagnement Personnalisé : Un espace pour définir les objectifs de l'artiste, lister les étapes concrètes et assigner des tâches à l'équipe ou au membre.
+Gestion Documentaire : Un emplacement unique pour stocker les documents de travail (CV, ébauches de demandes, budgets).
+Pilier 2 : Gestion des Opportunités et des Subventions
+Ce module transforme votre expertise en un outil d'action pour les artistes.
+Base de Données des Opportunités : Une liste centralisée des subventions, appels à projets et résidences avec leurs critères et dates limites.
+Tableau de Suivi des Candidatures : Une vue d'ensemble pour suivre, pour chaque artiste, l'état de ses candidatures (en cours, soumise, acceptée, refusée), permettant de planifier le soutien de votre équipe.
+Pilier 3 : Outils de Pilotage pour l'Équipe Interne
+Des fonctionnalités conçues pour la collaboration et l'efficacité au quotidien.
+Tableau de Bord Central : Une page d'accueil affichant les rendez-vous du jour, les tâches prioritaires et les prochaines échéances importantes.
+Calendrier d'Équipe Unifié : Synchronise tous les rendez-vous Calendly de l'équipe pour une vision globale des disponibilités.
+Gestion de Tâches Internes : Pour assigner et suivre les actions non liées directement à un artiste (ex: préparation de rapports, organisation d'événements).
+Pilier 4 : Communication Ciblée et Gestion de la Demande
+Ce pilier rend votre CRM proactif, vous permettant de gérer le flux de demandes et de communiquer efficacement.
+Module d'Envoi de Courriels de Groupe :
+Segmentation : Créez des listes de diffusion intelligentes basées sur des critères précis (ex: "tous les membres ayant déjà eu un accompagnement").
+Envoi Simplifié : Envoyez des communications ciblées avec des modèles et des champs personnalisés (ex: "Bonjour [Prénom]").
+Système de Liste d'Attente Automatisée :
+Inscription Automatique : Quand Calendly est complet, un formulaire d'attente s'active.
+Gestion Prioritaire : Lorsque vous ouvrez de nouvelles places, le système contacte automatiquement les premières personnes sur la liste.
+Accès Exclusif : Les personnes contactées reçoivent un lien spécial pour prendre rendez-vous en priorité, assurant un processus juste et transparent.
+Pilier 5 : Mesure d'Impact et Rapports
+Un outil essentiel pour valoriser votre travail auprès de vos partenaires et bailleurs de fonds.
+Générateur de Rapports Simplifié : En quelques clics, extrayez des données cruciales :
+Nombre d'artistes accompagnés (par discipline, par type de diversité, etc.).
+Nombre de subventions déposées et obtenues.
+Montant total des financements décrochés par vos membres.
+En résumé, ce CRM sera le véritable centre névralgique de votre OSBL. Il réduira votre charge administrative, assurera un suivi qualitatif et cohérent pour chaque artiste, et vous fournira les données précises pour prouver et célébrer vo
