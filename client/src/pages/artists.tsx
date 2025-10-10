@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, Filter, Users, X } from "lucide-react";
+import { Plus, Search, Filter, Users, X, Download } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,55 @@ export default function Artists() {
 
   const activeFiltersCount = selectedDisciplines.length + selectedDiversityTypes.length;
 
+  // Export to CSV function
+  const exportToCSV = () => {
+    if (!filteredArtists || filteredArtists.length === 0) {
+      return;
+    }
+
+    // CSV headers
+    const headers = [
+      "Prénom",
+      "Nom",
+      "Email",
+      "Téléphone",
+      "Discipline",
+      "Type de Diversité",
+      "Portfolio"
+    ];
+
+    // Convert data to CSV rows
+    const rows = filteredArtists.map(artist => [
+      artist.firstName,
+      artist.lastName,
+      artist.email,
+      artist.phone || "",
+      disciplineLabels[artist.discipline] || artist.discipline,
+      artist.diversityType || "",
+      artist.portfolio || ""
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      )
+    ].join("\n");
+
+    // Create blob and download
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `artistes_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url); // Free memory
+  };
+
   return (
     <div className="flex flex-col gap-6 p-8">
       <div className="flex items-center justify-between gap-4">
@@ -79,20 +128,31 @@ export default function Artists() {
             Gérez les profils et l'accompagnement de vos artistes
           </p>
         </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-artist">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvel Artiste
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Ajouter un Artiste</DialogTitle>
-            </DialogHeader>
-            <CreateArtistForm onSuccess={() => setCreateDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={exportToCSV}
+            disabled={!filteredArtists || filteredArtists.length === 0}
+            data-testid="button-export-csv"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exporter CSV
+          </Button>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-create-artist">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel Artiste
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Ajouter un Artiste</DialogTitle>
+              </DialogHeader>
+              <CreateArtistForm onSuccess={() => setCreateDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search and Filters */}

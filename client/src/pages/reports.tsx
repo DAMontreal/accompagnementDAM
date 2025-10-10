@@ -32,6 +32,42 @@ export default function Reports() {
     queryKey: [`/api/reports?timeRange=${timeRange}&discipline=${discipline}`],
   });
 
+  // Export to CSV function
+  const exportToCSV = () => {
+    if (!reportData) return;
+
+    const csvSections = [
+      `Rapport d'Impact - ${new Date().toLocaleDateString('fr-FR')}`,
+      `\nPériode: ${timeRange === 'month' ? 'Ce mois' : timeRange === 'quarter' ? 'Ce trimestre' : timeRange === 'year' ? 'Cette année' : 'Tout'}`,
+      `Discipline: ${discipline === 'all' ? 'Toutes' : discipline}`,
+      `\n\nMétriques Globales`,
+      `Total Artistes,${reportData.totalArtists}`,
+      `Total Candidatures,${reportData.totalApplications}`,
+      `Candidatures Acceptées,${reportData.acceptedApplications}`,
+      `Financement Total,${reportData.totalFunding}€`,
+      `\n\nArtistes par Discipline`,
+      `Discipline,Nombre`,
+      ...reportData.byDiscipline.map(d => `"${d.discipline}",${d.count}`),
+      `\n\nCandidatures par Statut`,
+      `Statut,Nombre`,
+      ...reportData.byStatus.map(s => `"${s.status}",${s.count}`),
+      `\n\nFinancement par Mois`,
+      `Mois,Montant (€)`,
+      ...reportData.fundingByMonth.map(f => `"${f.month}",${f.amount}`),
+    ].join('\n');
+
+    const blob = new Blob(["\ufeff" + csvSections], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `rapport_impact_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url); // Free memory
+  };
+
   return (
     <div className="flex flex-col gap-6 p-8">
       <div className="flex items-center justify-between gap-4">
@@ -43,10 +79,21 @@ export default function Reports() {
             Mesurez et visualisez l'impact de votre accompagnement
           </p>
         </div>
-        <Button data-testid="button-export-report">
-          <Download className="h-4 w-4 mr-2" />
-          Exporter en PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={exportToCSV}
+            disabled={!reportData}
+            data-testid="button-export-csv"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exporter CSV
+          </Button>
+          <Button data-testid="button-export-report" disabled>
+            <Download className="h-4 w-4 mr-2" />
+            Exporter en PDF
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
