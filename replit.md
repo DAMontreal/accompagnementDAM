@@ -1,8 +1,8 @@
-# Artist Accompaniment CRM
+# DAM Accompagnement
 
 ## Overview
 
-This is a comprehensive CRM system designed specifically for non-profit organizations that support diverse artists. The application centralizes artist management, grant/funding opportunity tracking, task management, waitlist handling, and email campaign capabilities. Built with a focus on efficiency and clarity, it provides internal teams with tools to manage artist accompaniment programs, track application outcomes, and measure organizational impact.
+This is a comprehensive CRM system called "DAM Accompagnement" designed specifically for non-profit organizations that support diverse artists. The application centralizes artist management, grant/funding opportunity tracking, task management, waitlist handling, and email campaign capabilities. Built with a focus on efficiency and clarity, it provides internal teams with tools to manage artist accompaniment programs, track application outcomes, and measure organizational impact.
 
 The system is designed to handle the full lifecycle of artist support: from initial contact and waitlist management, through personalized accompaniment plans, to grant application tracking and impact reporting.
 
@@ -23,7 +23,8 @@ Preferred communication style: Simple, everyday language.
 - Shadcn/ui component library (New York style variant) built on Radix UI primitives
 - Tailwind CSS for styling with custom design tokens
 - Design philosophy: Linear/Notion-inspired productivity interface emphasizing clarity over decoration
-- Custom color palette with sophisticated purple primary color (#8B5CF6) aligned with arts/culture context
+- DAM Accompagnement brand colors: Orange primary (#F89720), Black text (#2F2D2B), Warm grey background (#F6F3F1)
+- Professional yet warm aesthetic reflecting the mission of supporting diverse artists
 - Typography: Inter for UI elements, JetBrains Mono for technical data
 
 **State Management:**
