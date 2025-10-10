@@ -63,7 +63,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>CRM Artistes</SidebarGroupLabel>
+          <SidebarGroupLabel>DAM Accompagnement</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
