@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, Filter, Users } from "lucide-react";
+import { Plus, Search, Filter, Users, X } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { CreateArtistForm } from "@/components/forms/create-artist-form";
 
 const disciplineLabels: Record<string, string> = {
@@ -33,19 +40,33 @@ const disciplineLabels: Record<string, string> = {
 export default function Artists() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>([]);
+  const [selectedDiversityTypes, setSelectedDiversityTypes] = useState<string[]>([]);
 
   const { data: artists, isLoading } = useQuery<Artist[]>({
     queryKey: ["/api/artists"],
   });
 
   const filteredArtists = artists?.filter(artist => {
+    // Search filter
     const searchLower = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = 
       artist.firstName.toLowerCase().includes(searchLower) ||
       artist.lastName.toLowerCase().includes(searchLower) ||
-      artist.email.toLowerCase().includes(searchLower)
-    );
+      artist.email.toLowerCase().includes(searchLower);
+    
+    // Discipline filter
+    const matchesDiscipline = selectedDisciplines.length === 0 || 
+      selectedDisciplines.includes(artist.discipline);
+    
+    // Diversity filter
+    const matchesDiversity = selectedDiversityTypes.length === 0 || 
+      (artist.diversityType && selectedDiversityTypes.includes(artist.diversityType));
+    
+    return matchesSearch && matchesDiscipline && matchesDiversity;
   });
+
+  const activeFiltersCount = selectedDisciplines.length + selectedDiversityTypes.length;
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -86,11 +107,124 @@ export default function Artists() {
             data-testid="input-search-artists"
           />
         </div>
-        <Button variant="outline" data-testid="button-filter-artists">
-          <Filter className="h-4 w-4 mr-2" />
-          Filtres
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" data-testid="button-filter-artists">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtres
+              {activeFiltersCount > 0 && (
+                <Badge variant="default" className="ml-2 h-5 px-1 min-w-5">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" data-testid="popover-filters">
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold">Filtres</h4>
+                  {activeFiltersCount > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedDisciplines([]);
+                        setSelectedDiversityTypes([]);
+                      }}
+                      data-testid="button-clear-filters"
+                    >
+                      Réinitialiser
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-sm font-semibold mb-2 block">Discipline</Label>
+                    <div className="space-y-2">
+                      {Object.entries(disciplineLabels).map(([value, label]) => (
+                        <div key={value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`discipline-${value}`}
+                            checked={selectedDisciplines.includes(value)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDisciplines([...selectedDisciplines, value]);
+                              } else {
+                                setSelectedDisciplines(selectedDisciplines.filter(d => d !== value));
+                              }
+                            }}
+                            data-testid={`checkbox-discipline-${value}`}
+                          />
+                          <label
+                            htmlFor={`discipline-${value}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold mb-2 block">Type de Diversité</Label>
+                    <div className="space-y-2">
+                      {["Visible", "Invisible", "Multiple"].map((type) => (
+                        <div key={type} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`diversity-${type}`}
+                            checked={selectedDiversityTypes.includes(type)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDiversityTypes([...selectedDiversityTypes, type]);
+                              } else {
+                                setSelectedDiversityTypes(selectedDiversityTypes.filter(d => d !== type));
+                              }
+                            }}
+                            data-testid={`checkbox-diversity-${type.toLowerCase()}`}
+                          />
+                          <label
+                            htmlFor={`diversity-${type}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {type}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Active filters display */}
+      {activeFiltersCount > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedDisciplines.map(discipline => (
+            <Badge key={discipline} variant="secondary" className="gap-1" data-testid={`chip-discipline-${discipline}`}>
+              {disciplineLabels[discipline]}
+              <X 
+                className="h-3 w-3 cursor-pointer" 
+                onClick={() => setSelectedDisciplines(selectedDisciplines.filter(d => d !== discipline))}
+              />
+            </Badge>
+          ))}
+          {selectedDiversityTypes.map(diversity => (
+            <Badge key={diversity} variant="secondary" className="gap-1" data-testid={`chip-diversity-${diversity.toLowerCase()}`}>
+              {diversity}
+              <X 
+                className="h-3 w-3 cursor-pointer" 
+                onClick={() => setSelectedDiversityTypes(selectedDiversityTypes.filter(d => d !== diversity))}
+              />
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* Artists Grid */}
       {isLoading ? (
