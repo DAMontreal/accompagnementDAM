@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import {
   insertArtistSchema,
   insertOpportunitySchema,
@@ -10,6 +13,7 @@ import {
   insertDocumentSchema,
   insertWaitlistSchema,
   insertEmailCampaignSchema,
+  insertAccompanimentPlanSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -93,6 +97,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Accompaniment Plans endpoints
+  app.get("/api/artists/:id/plans", async (req, res) => {
+    try {
+      const plans = await storage.getArtistAccompanimentPlans(req.params.id);
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching accompaniment plans:", error);
+      res.status(500).json({ error: "Failed to fetch accompaniment plans" });
+    }
+  });
+
+  app.post("/api/plans", async (req, res) => {
+    try {
+      const validatedData = insertAccompanimentPlanSchema.parse(req.body);
+      const plan = await storage.createAccompanimentPlan(validatedData);
+      res.status(201).json(plan);
+    } catch (error) {
+      console.error("Error creating accompaniment plan:", error);
+      res.status(400).json({ error: "Invalid accompaniment plan data" });
+    }
+  });
+
+  app.patch("/api/plans/:id", async (req, res) => {
+    try {
+      const plan = await storage.updateAccompanimentPlan(req.params.id, req.body);
+      if (!plan) {
+        return res.status(404).json({ error: "Accompaniment plan not found" });
+      }
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating accompaniment plan:", error);
+      res.status(500).json({ error: "Failed to update accompaniment plan" });
+    }
+  });
+
   // Applications endpoints
   app.get("/api/artists/:id/applications", async (req, res) => {
     try {
@@ -139,6 +178,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Setup multer for file uploads
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const multerStorage = multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+    },
+  });
+
+  const allowedMimeTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "image/jpeg",
+    "image/jpg",
+    "image/png"
+  ];
+
+  const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Type de fichier non autorisé. Seuls PDF, DOC, DOCX, JPG et PNG sont acceptés."));
+    }
+  };
+
+  const upload = multer({ 
+    storage: multerStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+    fileFilter
+  });
+
+  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { title, type, artistId } = req.body;
+      if (!title || !type || !artistId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const fileUrl = `/uploads/${req.file.filename}`;
+      const document = await storage.createDocument({
+        artistId,
+        title,
+        type,
+        fileUrl,
+      });
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      if (error instanceof multer.MulterError) {
+        if (error.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ error: "Fichier trop volumineux (max 10MB)" });
+        }
+      }
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
   app.post("/api/documents", async (req, res) => {
     try {
       const validatedData = insertDocumentSchema.parse(req.body);
@@ -147,6 +254,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating document:", error);
       res.status(400).json({ error: "Invalid document data" });
+    }
+  });
+
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      // Get document to find file path
+      const doc = await storage.getArtistDocuments("dummy"); // This is a hack, need better method
+      // TODO: Add getDocument method to storage
+      
+      await storage.deleteDocument(req.params.id);
+      
+      // TODO: Delete physical file from uploads directory
+      // Note: For production, this should use object storage deletion
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      res.status(500).json({ error: "Failed to delete document" });
     }
   });
 

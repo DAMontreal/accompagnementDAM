@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Artist, Interaction, Application, Document } from "@shared/schema";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { AccompanimentPlanTab } from "@/components/accompaniment-plan-tab";
+import { DocumentsTab } from "@/components/documents-tab";
 
 const disciplineLabels: Record<string, string> = {
   visual_arts: "Arts visuels",
@@ -220,16 +222,7 @@ export default function ArtistDetail() {
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan d'Accompagnement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center py-8 text-muted-foreground">
-                Fonctionnalité en développement
-              </p>
-            </CardContent>
-          </Card>
+          <AccompanimentPlanTab artistId={artistId!} />
         </TabsContent>
 
         <TabsContent value="applications" className="mt-6">
@@ -274,43 +267,7 @@ export default function ArtistDetail() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {documentsLoading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : documents && documents.length > 0 ? (
-                <div className="space-y-3">
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 rounded-lg border hover-elevate"
-                      data-testid={`document-${doc.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.title}</p>
-                          <p className="text-xs text-muted-foreground">{doc.type}</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">Télécharger</Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">
-                  Aucun document
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <DocumentsTab artistId={artistId!} documents={documents} isLoading={documentsLoading} />
         </TabsContent>
       </Tabs>
     </div>

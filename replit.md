@@ -92,7 +92,10 @@ Preferred communication style: Simple, everyday language.
 **Third-Party Integrations (Planned/Referenced):**
 - Calendly integration for appointment scheduling (interactions marked with type `calendly_appointment`)
 - Outlook/email system integration for archiving important communications
-- File storage system for document management (implementation pending)
+- File storage system for document management (currently using local uploads directory)
+  - NOTE: Production should use Replit Object Storage for proper file handling
+  - Current implementation has file validation (PDF, DOC, DOCX, JPG, PNG) and 10MB size limit
+  - File deletion cleanup needs to be implemented for production
 
 **Development Tools:**
 - Replit-specific plugins for development experience (cartographer, dev banner, runtime error overlay)
