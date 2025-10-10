@@ -64,6 +64,7 @@ Preferred communication style: Simple, everyday language.
 - **Opportunities**: Grant/funding opportunities with deadlines and eligibility criteria
 - **Applications**: Artist grant applications with status tracking
 - **Documents**: File storage references for CVs, proposals, budgets
+- **Resources**: Directory of venues, equipment, and services for artists (salles de spectacle, équipement de location, services)
 - **Tasks**: Internal team task management with priorities and assignments
 - **Waitlist**: Queue management for appointment scheduling
 - **Email Campaigns**: Segmented communication campaigns with targeting criteria
@@ -105,6 +106,17 @@ Preferred communication style: Simple, everyday language.
   - Alternative: Manual Calendly integration or direct Google Calendar API with user-provided credentials
   - Note: If needed in future, request Google Calendar API credentials from user or use Replit connector
 - **CSV Export (COMPLETED)**: Artist list and reports data export with UTF-8 encoding
+- **Resources Management (COMPLETED)**: Directory of venues, equipment, and services for artists
+  - Data model: `resources` table with resourceTypeEnum (venue/equipment/service/other)
+  - API endpoints: Full CRUD operations with type filtering
+    - GET /api/resources - list all resources
+    - GET /api/resources?type={type} - filter by type
+    - POST /api/resources - create new resource
+    - PATCH /api/resources/:id - update resource
+    - DELETE /api/resources/:id - delete resource
+  - Frontend: client/src/pages/resources.tsx with grid layout, type tabs, and create/edit dialogs
+  - Resource fields: name, type, description, contact info, location (address, website), capacity, pricing, availability, internal notes
+  - Navigation: "Ressources" in sidebar between "Opportunités" and "Tâches"
 - File storage system for document management (currently using local uploads directory)
   - NOTE: Production should use Replit Object Storage for proper file handling
   - Current implementation has file validation (PDF, DOC, DOCX, JPG, PNG) and 10MB size limit
