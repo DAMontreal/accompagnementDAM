@@ -9,6 +9,7 @@ import {
   tasks,
   waitlist,
   emailCampaigns,
+  resources,
   type Artist,
   type InsertArtist,
   type Interaction,
@@ -27,6 +28,8 @@ import {
   type InsertWaitlistEntry,
   type EmailCampaign,
   type InsertEmailCampaign,
+  type Resource,
+  type InsertResource,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, sql, inArray, desc } from "drizzle-orm";
@@ -89,6 +92,14 @@ export interface IStorage {
   getAllCampaigns(): Promise<EmailCampaign[]>;
   createCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
   updateCampaign(id: string, campaign: Partial<InsertEmailCampaign>): Promise<EmailCampaign | undefined>;
+
+  // Resources
+  getResource(id: string): Promise<Resource | undefined>;
+  getAllResources(): Promise<Resource[]>;
+  getResourcesByType(type: string): Promise<Resource[]>;
+  createResource(resource: InsertResource): Promise<Resource>;
+  updateResource(id: string, resource: Partial<InsertResource>): Promise<Resource | undefined>;
+  deleteResource(id: string): Promise<void>;
 
   // Stats & Reports
   getStats(): Promise<{
@@ -458,6 +469,37 @@ export class DatabaseStorage implements IStorage {
       byStatus,
       fundingByMonth: fundingByMonthArray,
     };
+  }
+
+  // Resources
+  async getResource(id: string): Promise<Resource | undefined> {
+    const [resource] = await db.select().from(resources).where(eq(resources.id, id));
+    return resource || undefined;
+  }
+
+  async getAllResources(): Promise<Resource[]> {
+    return await db.select().from(resources).orderBy(desc(resources.createdAt));
+  }
+
+  async getResourcesByType(type: string): Promise<Resource[]> {
+    return await db.select().from(resources).where(eq(resources.type, type)).orderBy(resources.name);
+  }
+
+  async createResource(insertResource: InsertResource): Promise<Resource> {
+    const [resource] = await db.insert(resources).values(insertResource).returning();
+    return resource;
+  }
+
+  async updateResource(id: string, insertResource: Partial<InsertResource>): Promise<Resource | undefined> {
+    const [resource] = await db.update(resources)
+      .set({ ...insertResource, updatedAt: new Date() })
+      .where(eq(resources.id, id))
+      .returning();
+    return resource || undefined;
+  }
+
+  async deleteResource(id: string): Promise<void> {
+    await db.delete(resources).where(eq(resources.id, id));
   }
 
   private translateDiscipline(discipline: string): string {

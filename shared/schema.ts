@@ -56,6 +56,13 @@ export const waitlistStatusEnum = pgEnum('waitlist_status', [
   'expired'
 ]);
 
+export const resourceTypeEnum = pgEnum('resource_type', [
+  'venue',       // Salles de spectacle
+  'equipment',   // Équipement à louer
+  'service',     // Services (son, lumière, etc.)
+  'other'
+]);
+
 // Artists table
 export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -175,6 +182,25 @@ export const emailCampaigns = pgTable("email_campaigns", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Resources table (venues, equipment rental, services)
+export const resources = pgTable("resources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: resourceTypeEnum("type").notNull(),
+  description: text("description"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  website: text("website"),
+  pricing: text("pricing"), // Info sur tarifs/prix
+  capacity: integer("capacity"), // Pour les salles
+  availability: text("availability"), // Notes sur disponibilité
+  internalNotes: text("internal_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const artistsRelations = relations(artists, ({ many }) => ({
   interactions: many(interactions),
@@ -282,6 +308,12 @@ export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit
   createdAt: true,
 });
 
+export const insertResourceSchema = createInsertSchema(resources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Export types
 export type Artist = typeof artists.$inferSelect;
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
@@ -309,6 +341,9 @@ export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;
 
 export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+
+export type Resource = typeof resources.$inferSelect;
+export type InsertResource = z.infer<typeof insertResourceSchema>;
 
 // Outlook Calendar Event schemas (not stored in DB, used for API validation)
 export const outlookEventTimeSchema = z.object({

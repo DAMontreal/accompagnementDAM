@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Artists from "@/pages/artists";
 import ArtistDetail from "@/pages/artist-detail";
 import Opportunities from "@/pages/opportunities";
+import Resources from "@/pages/resources";
 import Tasks from "@/pages/tasks";
 import Campaigns from "@/pages/campaigns";
 import Waitlist from "@/pages/waitlist";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/artists" component={Artists} />
       <Route path="/artists/:id" component={ArtistDetail} />
       <Route path="/opportunities" component={Opportunities} />
+      <Route path="/resources" component={Resources} />
       <Route path="/tasks" component={Tasks} />
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/waitlist" component={Waitlist} />

@@ -14,6 +14,7 @@ import {
   insertWaitlistSchema,
   insertEmailCampaignSchema,
   insertAccompanimentPlanSchema,
+  insertResourceSchema,
   createOutlookEventSchema,
   syncOutlookEventSchema,
 } from "@shared/schema";
@@ -493,6 +494,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating report:", error);
       res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  // Resources endpoints
+  app.get("/api/resources", async (req, res) => {
+    try {
+      const type = req.query.type as string;
+      const resources = type
+        ? await storage.getResourcesByType(type)
+        : await storage.getAllResources();
+      res.json(resources);
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+      res.status(500).json({ error: "Failed to fetch resources" });
+    }
+  });
+
+  app.get("/api/resources/:id", async (req, res) => {
+    try {
+      const resource = await storage.getResource(req.params.id);
+      if (!resource) {
+        return res.status(404).json({ error: "Resource not found" });
+      }
+      res.json(resource);
+    } catch (error) {
+      console.error("Error fetching resource:", error);
+      res.status(500).json({ error: "Failed to fetch resource" });
+    }
+  });
+
+  app.post("/api/resources", async (req, res) => {
+    try {
+      const validatedData = insertResourceSchema.parse(req.body);
+      const resource = await storage.createResource(validatedData);
+      res.status(201).json(resource);
+    } catch (error) {
+      console.error("Error creating resource:", error);
+      res.status(400).json({ error: "Invalid resource data" });
+    }
+  });
+
+  app.patch("/api/resources/:id", async (req, res) => {
+    try {
+      const resource = await storage.updateResource(req.params.id, req.body);
+      if (!resource) {
+        return res.status(404).json({ error: "Resource not found" });
+      }
+      res.json(resource);
+    } catch (error) {
+      console.error("Error updating resource:", error);
+      res.status(500).json({ error: "Failed to update resource" });
+    }
+  });
+
+  app.delete("/api/resources/:id", async (req, res) => {
+    try {
+      await storage.deleteResource(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+      res.status(500).json({ error: "Failed to delete resource" });
     }
   });
 
