@@ -1,0 +1,100 @@
+done
+Timer: Analyzer started at 2026-01-05T21:33:01Z
+Image with name "registry01.prod.koyeb.com/k-da40355f-201a-4e7f-8507-298fc24d21d7/afc5ab1e-1715-45e8-9456-65da78a4b825" not found
+Timer: Analyzer ran for 307.870461ms and ended at 2026-01-05T21:33:01Z
+Timer: Detector started at 2026-01-05T21:33:02Z
+2 of 5 buildpacks participating
+heroku/nodejs-engine      3.6.5
+heroku/nodejs-npm-install 3.6.5
+Timer: Detector ran for 116.008837ms and ended at 2026-01-05T21:33:02Z
+Timer: Restorer started at 2026-01-05T21:33:03Z
+Layer cache not found
+Timer: Restorer ran for 257.774269ms and ended at 2026-01-05T21:33:03Z
+Timer: Builder started at 2026-01-05T21:33:05Z
+
+[1;35m## Heroku Node.js Engine[0m
+
+- Checking Node.js version
+  - Node.js version not specified, using `[0;33m22.x[0m`
+  - Resolved Node.js version: `[0;33m22.15.1[0m`
+- Installing Node.js distribution
+  - Downloading Node.js `[0;33m22.15.1 (linux-amd64)[0m` from [1;4;36mhttps://nodejs.org/download/release/v22.15.1/node-v22.15.1-linux-x64.tar.gz[0m[2;1m .[0m[2;1m.[0m[2;1m. [0m(< 0.1s)
+  - Verifying checksum
+  - Extracting Node.js `[0;33m22.15.1 (linux-amd64)[0m`
+  - Installing Node.js `[0;33m22.15.1 (linux-amd64)[0m`[2;1m .[0m[2;1m.[0m[2;1m. [0m(< 0.1s)
+- Done (finished in 1.3s)
+
+[1;35m## Heroku Node.js npm Install[0m
+
+- Installing node modules
+  - Using npm version `[0;33m10.9.2[0m`
+  - Creating npm cache
+  - Configuring npm cache directory
+  - Running `[0;33m[1;36mnpm ci "--production=false"[0m`
+
+      npm warn config production Use `--omit=dev` instead.
+      npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+      npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+
+      added 490 packages, and audited 491 packages in 5s
+
+      65 packages are looking for funding
+        run `npm fund` for details
+
+      12 vulnerabilities (3 low, 5 moderate, 4 high)
+
+      To address issues that do not require attention, run:
+        npm audit fix
+
+      To address all issues (including breaking changes), run:
+        npm audit fix --force
+
+      Run `npm audit` for details.
+
+  - Done (5.3s)
+- Running scripts
+  - Running `[0;33m[1;36mnpm run build[0m`
+
+
+      > rest-express@1.0.0 build
+      > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+      vite v5.4.20 building for production...
+      ✓ 0 modules transformed.
+      x Build failed in 6ms
+      error during build:
+      Could not resolve entry module "client/index.html".
+          at getRollupError (file:///workspace/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+          at error (file:///workspace/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+          at ModuleLoader.loadEntryModule (file:///workspace/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+          at async Promise.all (index 0)
+
+  - Done (0.2s)
+
+- [1;36mDebug Info:[0m
+  - Command failed `npm run build`
+    exit status: 1
+    stdout: <see above>
+    stderr: <see above>
+
+[0;31m! Failed to execute build script[0m
+[0;31m![0m
+[0;31m! The Heroku Node.js npm Install buildpack allows customization of the build process by executing the following scripts if they are defined in `[0;33mpackage.json[0m[0;31m`:[0m
+[0;31m! - `[0;33mheroku-prebuild[0m[0;31m` [0m
+[0;31m! - `[0;33mheroku-build[0m[0;31m` or `[0;33mbuild[0m[0;31m` [0m
+[0;31m! - `[0;33mheroku-postbuild[0m[0;31m`[0m
+[0;31m![0m
+[0;31m! An unexpected error occurred while executing `[0;33mnpm run build[0m[0;31m`. See the log output above for more information.[0m
+[0;31m![0m
+[0;31m! Suggestions:[0m
+[0;31m! - Ensure that this command runs locally without error.[0m
+[0;31m![0m
+[0;31m! Use the debug information above to troubleshoot and retry your build.[0m
+[0;31m![0m
+[0;31m! If the issue persists and you think you found a bug in the buildpack, reproduce the issue locally with a minimal example. Open an issue in the buildpack's GitHub repository and include the details here:[0m
+[0;31m! [1;4;36mhttps://github.com/heroku/buildpacks-nodejs/issues[0m
+
+
+Timer: Builder ran for 7.189163967s and ended at 2026-01-05T21:33:12Z
+[31;1mERROR: [0mfailed to build: exit status 1
+Build failed ❌
