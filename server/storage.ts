@@ -11,6 +11,7 @@ import {
   emailCampaigns,
   resources,
   artistNotes,
+  teamMembers,
   type Artist,
   type InsertArtist,
   type Interaction,
@@ -33,6 +34,8 @@ import {
   type InsertResource,
   type ArtistNote,
   type InsertArtistNote,
+  type TeamMember,
+  type InsertTeamMember,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, sql, inArray, desc } from "drizzle-orm";
@@ -108,6 +111,14 @@ export interface IStorage {
   getArtistNotes(artistId: string): Promise<ArtistNote[]>;
   createArtistNote(note: InsertArtistNote): Promise<ArtistNote>;
   deleteArtistNote(id: string): Promise<void>;
+
+  // Team Members
+  getAllTeamMembers(): Promise<TeamMember[]>;
+  getTeamMemberByName(name: string): Promise<TeamMember | undefined>;
+  getTeamMemberByEmail(email: string): Promise<TeamMember | undefined>;
+  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: string, member: Partial<InsertTeamMember>): Promise<TeamMember | undefined>;
+  deleteTeamMember(id: string): Promise<void>;
 
   // Campaign
   getCampaign(id: string): Promise<EmailCampaign | undefined>;
@@ -525,6 +536,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteArtistNote(id: string): Promise<void> {
     await db.delete(artistNotes).where(eq(artistNotes.id, id));
+  }
+
+  // Team Members
+  async getAllTeamMembers(): Promise<TeamMember[]> {
+    return await db.select().from(teamMembers).orderBy(teamMembers.name);
+  }
+
+  async getTeamMemberByName(name: string): Promise<TeamMember | undefined> {
+    const [member] = await db.select().from(teamMembers).where(eq(teamMembers.name, name));
+    return member || undefined;
+  }
+
+  async getTeamMemberByEmail(email: string): Promise<TeamMember | undefined> {
+    const [member] = await db.select().from(teamMembers).where(eq(teamMembers.email, email));
+    return member || undefined;
+  }
+
+  async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    const [teamMember] = await db.insert(teamMembers).values(member).returning();
+    return teamMember;
+  }
+
+  async updateTeamMember(id: string, member: Partial<InsertTeamMember>): Promise<TeamMember | undefined> {
+    const [updated] = await db.update(teamMembers).set(member).where(eq(teamMembers.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteTeamMember(id: string): Promise<void> {
+    await db.delete(teamMembers).where(eq(teamMembers.id, id));
   }
 
   // Campaign

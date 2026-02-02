@@ -16,6 +16,7 @@ import Tasks from "@/pages/tasks";
 import Campaigns from "@/pages/campaigns";
 import Waitlist from "@/pages/waitlist";
 import Reports from "@/pages/reports";
+import Team from "@/pages/team";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/waitlist" component={Waitlist} />
       <Route path="/reports" component={Reports} />
+      <Route path="/team" component={Team} />
       <Route component={NotFound} />
     </Switch>
   );

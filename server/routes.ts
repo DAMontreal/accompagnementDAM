@@ -16,10 +16,11 @@ import {
   insertAccompanimentPlanSchema,
   insertResourceSchema,
   insertArtistNoteSchema,
+  insertTeamMemberSchema,
   createOutlookEventSchema,
   syncOutlookEventSchema,
 } from "@shared/schema";
-import { getRecentEmails, searchEmailsByAddress, getEmailById, getCalendarEvents, searchEventsByAttendee, createCalendarEvent, getEventById } from "./outlook";
+import { getRecentEmails, searchEmailsByAddress, getEmailById, getCalendarEvents, searchEventsByAttendee, createCalendarEvent, getEventById, sendEmail } from "./outlook";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Artists endpoints
@@ -398,6 +399,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTaskSchema.parse(req.body);
       const task = await storage.createTask(validatedData);
+      
+      // Send email notification if task is assigned to someone
+      if (task.assignedTo) {
+        try {
+          const teamMember = await storage.getTeamMemberByName(task.assignedTo);
+          if (teamMember && teamMember.email) {
+            const artist = task.artistId ? await storage.getArtist(task.artistId) : null;
+            const artistName = artist ? `${artist.firstName} ${artist.lastName}` : 'Tâche interne';
+            const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR') : 'Non définie';
+            
+            await sendEmail({
+              to: teamMember.email,
+              subject: `Nouvelle tâche assignée: ${task.title}`,
+              body: `
+                <h2>Nouvelle tâche assignée</h2>
+                <p>Bonjour ${teamMember.name},</p>
+                <p>Une nouvelle tâche vous a été assignée dans DAM Accompagnement:</p>
+                <ul>
+                  <li><strong>Titre:</strong> ${task.title}</li>
+                  <li><strong>Description:</strong> ${task.description || 'Aucune description'}</li>
+                  <li><strong>Artiste:</strong> ${artistName}</li>
+                  <li><strong>Priorité:</strong> ${task.priority}</li>
+                  <li><strong>Échéance:</strong> ${dueDate}</li>
+                </ul>
+                <p>Connectez-vous à l'application pour plus de détails.</p>
+                <p>Cordialement,<br>DAM Accompagnement</p>
+              `,
+              isHtml: true
+            });
+            console.log(`Email notification sent to ${teamMember.email} for task ${task.id}`);
+          }
+        } catch (emailError) {
+          console.error("Error sending task notification email:", emailError);
+          // Don't fail the request if email fails
+        }
+      }
+      
       res.status(201).json(task);
     } catch (error) {
       console.error("Error creating task:", error);
@@ -425,6 +463,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting task:", error);
       res.status(500).json({ error: "Failed to delete task" });
+    }
+  });
+
+  // Team Members endpoints
+  app.get("/api/team-members", async (_req, res) => {
+    try {
+      const members = await storage.getAllTeamMembers();
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.post("/api/team-members", async (req, res) => {
+    try {
+      const validatedData = insertTeamMemberSchema.parse(req.body);
+      const member = await storage.createTeamMember(validatedData);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Error creating team member:", error);
+      res.status(400).json({ error: "Invalid team member data" });
+    }
+  });
+
+  app.patch("/api/team-members/:id", async (req, res) => {
+    try {
+      const validatedData = insertTeamMemberSchema.partial().parse(req.body);
+      const member = await storage.updateTeamMember(req.params.id, validatedData);
+      if (!member) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      res.json(member);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ error: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/team-members/:id", async (req, res) => {
+    try {
+      await storage.deleteTeamMember(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting team member:", error);
+      res.status(500).json({ error: "Failed to delete team member" });
     }
   });
 

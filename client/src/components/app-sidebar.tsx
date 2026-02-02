@@ -1,4 +1,4 @@
-import { Users, Briefcase, LayoutDashboard, CheckSquare, Mail, UserPlus, BarChart3, Building2 } from "lucide-react";
+import { Users, Briefcase, LayoutDashboard, CheckSquare, Mail, UserPlus, BarChart3, Building2, Users2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -59,6 +59,12 @@ const menuItems = [
     url: "/reports",
     icon: BarChart3,
     testId: "link-reports",
+  },
+  {
+    title: "Équipe",
+    url: "/team",
+    icon: Users2,
+    testId: "link-team",
   },
 ];
 

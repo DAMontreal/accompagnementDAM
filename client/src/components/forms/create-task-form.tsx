@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { insertTaskSchema, type InsertTask, type Artist } from "@shared/schema";
+import { insertTaskSchema, type InsertTask, type Artist, type TeamMember } from "@shared/schema";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,10 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
     queryKey: ["/api/artists"],
   });
 
+  const { data: teamMembers } = useQuery<TeamMember[]>({
+    queryKey: ["/api/team-members"],
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,7 +62,8 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
     mutationFn: async (data: FormValues) => {
       const submitData = {
         ...data,
-        artistId: data.artistId || null,
+        artistId: data.artistId === "none" ? null : data.artistId || null,
+        assignedTo: data.assignedTo === "none" ? null : data.assignedTo || null,
         dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
       };
       return await apiRequest("POST", "/api/tasks", submitData);
@@ -171,9 +176,21 @@ export function CreateTaskForm({ onSuccess }: CreateTaskFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Assigné à</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nom du membre de l'équipe" {...field} data-testid="input-task-assignee" />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                  <FormControl>
+                    <SelectTrigger data-testid="select-task-assignee">
+                      <SelectValue placeholder="Sélectionnez un membre" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Non assigné</SelectItem>
+                    {teamMembers?.filter(m => m.isActive).map((member) => (
+                      <SelectItem key={member.id} value={member.name}>
+                        {member.name} {member.role && `(${member.role})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

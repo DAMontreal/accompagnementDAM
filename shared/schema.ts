@@ -213,6 +213,16 @@ export const resources = pgTable("resources", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Team Members table
+export const teamMembers = pgTable("team_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  role: text("role"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const artistsRelations = relations(artists, ({ many }) => ({
   interactions: many(interactions),
@@ -374,6 +384,14 @@ export type InsertResource = z.infer<typeof insertResourceSchema>;
 
 export type ArtistNote = typeof artistNotes.$inferSelect;
 export type InsertArtistNote = z.infer<typeof insertArtistNoteSchema>;
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
 
 // Outlook Calendar Event schemas (not stored in DB, used for API validation)
 export const outlookEventTimeSchema = z.object({
