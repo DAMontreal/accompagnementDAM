@@ -167,3 +167,37 @@ export async function getEventById(eventId: string) {
   
   return event;
 }
+
+// Send email
+export async function sendEmail(emailData: {
+  to: string;
+  subject: string;
+  body: string;
+  isHtml?: boolean;
+}) {
+  const client = await getUncachableOutlookClient();
+  
+  const message = {
+    message: {
+      subject: emailData.subject,
+      body: {
+        contentType: emailData.isHtml ? 'HTML' : 'Text',
+        content: emailData.body
+      },
+      toRecipients: [
+        {
+          emailAddress: {
+            address: emailData.to
+          }
+        }
+      ]
+    },
+    saveToSentItems: true
+  };
+  
+  await client
+    .api('/me/sendMail')
+    .post(message);
+  
+  return { success: true };
+}
