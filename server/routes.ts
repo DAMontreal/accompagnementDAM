@@ -15,6 +15,7 @@ import {
   insertEmailCampaignSchema,
   insertAccompanimentPlanSchema,
   insertResourceSchema,
+  insertArtistNoteSchema,
   createOutlookEventSchema,
   syncOutlookEventSchema,
 } from "@shared/schema";
@@ -98,6 +99,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating interaction:", error);
       res.status(400).json({ error: "Invalid interaction data" });
+    }
+  });
+
+  // Artist Notes endpoints
+  app.get("/api/artists/:id/notes", async (req, res) => {
+    try {
+      const notes = await storage.getArtistNotes(req.params.id);
+      res.json(notes);
+    } catch (error) {
+      console.error("Error fetching artist notes:", error);
+      res.status(500).json({ error: "Failed to fetch artist notes" });
+    }
+  });
+
+  app.post("/api/artists/:id/notes", async (req, res) => {
+    try {
+      const validatedData = insertArtistNoteSchema.parse({
+        ...req.body,
+        artistId: req.params.id,
+      });
+      const note = await storage.createArtistNote(validatedData);
+      res.status(201).json(note);
+    } catch (error) {
+      console.error("Error creating artist note:", error);
+      res.status(400).json({ error: "Invalid note data" });
+    }
+  });
+
+  app.delete("/api/notes/:id", async (req, res) => {
+    try {
+      await storage.deleteArtistNote(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting artist note:", error);
+      res.status(500).json({ error: "Failed to delete artist note" });
     }
   });
 
@@ -435,6 +471,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.get("/api/campaigns/:id", async (req, res) => {
+    try {
+      const campaign = await storage.getCampaign(req.params.id);
+      if (!campaign) {
+        return res.status(404).json({ error: "Campaign not found" });
+      }
+      res.json(campaign);
+    } catch (error) {
+      console.error("Error fetching campaign:", error);
+      res.status(500).json({ error: "Failed to fetch campaign" });
     }
   });
 

@@ -10,6 +10,7 @@ import {
   waitlist,
   emailCampaigns,
   resources,
+  artistNotes,
   type Artist,
   type InsertArtist,
   type Interaction,
@@ -30,6 +31,8 @@ import {
   type InsertEmailCampaign,
   type Resource,
   type InsertResource,
+  type ArtistNote,
+  type InsertArtistNote,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte, sql, inArray, desc } from "drizzle-orm";
@@ -100,6 +103,14 @@ export interface IStorage {
   createResource(resource: InsertResource): Promise<Resource>;
   updateResource(id: string, resource: Partial<InsertResource>): Promise<Resource | undefined>;
   deleteResource(id: string): Promise<void>;
+
+  // Artist Notes
+  getArtistNotes(artistId: string): Promise<ArtistNote[]>;
+  createArtistNote(note: InsertArtistNote): Promise<ArtistNote>;
+  deleteArtistNote(id: string): Promise<void>;
+
+  // Campaign
+  getCampaign(id: string): Promise<EmailCampaign | undefined>;
 
   // Stats & Reports
   getStats(): Promise<{
@@ -500,6 +511,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteResource(id: string): Promise<void> {
     await db.delete(resources).where(eq(resources.id, id));
+  }
+
+  // Artist Notes
+  async getArtistNotes(artistId: string): Promise<ArtistNote[]> {
+    return await db.select().from(artistNotes).where(eq(artistNotes.artistId, artistId)).orderBy(desc(artistNotes.sessionDate));
+  }
+
+  async createArtistNote(note: InsertArtistNote): Promise<ArtistNote> {
+    const [artistNote] = await db.insert(artistNotes).values(note).returning();
+    return artistNote;
+  }
+
+  async deleteArtistNote(id: string): Promise<void> {
+    await db.delete(artistNotes).where(eq(artistNotes.id, id));
+  }
+
+  // Campaign
+  async getCampaign(id: string): Promise<EmailCampaign | undefined> {
+    const [campaign] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return campaign || undefined;
   }
 
   private translateDiscipline(discipline: string): string {

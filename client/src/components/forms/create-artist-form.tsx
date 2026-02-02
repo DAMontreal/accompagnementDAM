@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { insertArtistSchema, type InsertArtist } from "@shared/schema";
@@ -13,15 +13,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { z } from "zod";
 
 const disciplineOptions = [
   { value: "visual_arts", label: "Arts visuels" },
@@ -35,6 +32,29 @@ const disciplineOptions = [
   { value: "other", label: "Autre" },
 ];
 
+const socialPlatformOptions = [
+  { value: "instagram", label: "Instagram" },
+  { value: "facebook", label: "Facebook" },
+  { value: "twitter", label: "Twitter/X" },
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "youtube", label: "YouTube" },
+  { value: "soundcloud", label: "SoundCloud" },
+  { value: "bandcamp", label: "Bandcamp" },
+  { value: "spotify", label: "Spotify" },
+  { value: "other", label: "Autre" },
+];
+
+const formSchema = insertArtistSchema.extend({
+  disciplines: z.array(z.string()).optional(),
+  socialLinks: z.array(z.object({
+    platform: z.string(),
+    url: z.string(),
+  })).optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 interface CreateArtistFormProps {
   onSuccess?: () => void;
 }
@@ -42,15 +62,17 @@ interface CreateArtistFormProps {
 export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
   const { toast } = useToast();
 
-  const form = useForm<InsertArtist>({
-    resolver: zodResolver(insertArtistSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
+      stageName: "",
       email: "",
       phone: "",
-      discipline: "visual_arts",
+      disciplines: [],
       portfolio: "",
+      socialLinks: [],
       artisticStatement: "",
       diversityType: "",
       internalNotes: "",
@@ -58,8 +80,13 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "socialLinks",
+  });
+
   const createMutation = useMutation({
-    mutationFn: async (data: InsertArtist) => {
+    mutationFn: async (data: FormData) => {
       return await apiRequest("POST", "/api/artists", data);
     },
     onSuccess: () => {
@@ -80,8 +107,17 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
     },
   });
 
-  const onSubmit = (data: InsertArtist) => {
+  const onSubmit = (data: FormData) => {
     createMutation.mutate(data);
+  };
+
+  const handleDisciplineChange = (value: string, checked: boolean) => {
+    const current = form.getValues("disciplines") || [];
+    if (checked) {
+      form.setValue("disciplines", [...current, value]);
+    } else {
+      form.setValue("disciplines", current.filter((d) => d !== value));
+    }
   };
 
   return (
@@ -118,6 +154,20 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
 
           <FormField
             control={form.control}
+            name="stageName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nom d'artiste / Surnom</FormLabel>
+                <FormControl>
+                  <Input placeholder="ex: DJ Nova" {...field} value={field.value || ""} data-testid="input-artist-stagename" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
@@ -146,31 +196,6 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
 
           <FormField
             control={form.control}
-            name="discipline"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Discipline *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-artist-discipline">
-                      <SelectValue placeholder="Sélectionnez une discipline" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {disciplineOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="diversityType"
             render={({ field }) => (
               <FormItem>
@@ -184,12 +209,35 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
           />
         </div>
 
+        {/* Disciplines - Multiple selection */}
+        <div className="space-y-3">
+          <Label>Disciplines *</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {disciplineOptions.map((option) => {
+              const isChecked = form.watch("disciplines")?.includes(option.value) || false;
+              return (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`discipline-${option.value}`}
+                    checked={isChecked}
+                    onCheckedChange={(checked) => handleDisciplineChange(option.value, !!checked)}
+                    data-testid={`checkbox-discipline-${option.value}`}
+                  />
+                  <Label htmlFor={`discipline-${option.value}`} className="text-sm font-normal cursor-pointer">
+                    {option.label}
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="portfolio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Portfolio (URL)</FormLabel>
+              <FormLabel>Portfolio (URL principale)</FormLabel>
               <FormControl>
                 <Input placeholder="https://..." {...field} data-testid="input-artist-portfolio" />
               </FormControl>
@@ -197,6 +245,52 @@ export function CreateArtistForm({ onSuccess }: CreateArtistFormProps) {
             </FormItem>
           )}
         />
+
+        {/* Social Links */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label>Réseaux Sociaux</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ platform: "instagram", url: "" })}
+              data-testid="button-add-social-link"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Ajouter
+            </Button>
+          </div>
+          {fields.map((field, index) => (
+            <div key={field.id} className="flex gap-2 items-start">
+              <select
+                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                value={form.watch(`socialLinks.${index}.platform`)}
+                onChange={(e) => form.setValue(`socialLinks.${index}.platform`, e.target.value)}
+                data-testid={`select-social-platform-${index}`}
+              >
+                {socialPlatformOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <Input
+                placeholder="https://..."
+                {...form.register(`socialLinks.${index}.url`)}
+                className="flex-1"
+                data-testid={`input-social-url-${index}`}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => remove(index)}
+                data-testid={`button-remove-social-${index}`}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
+        </div>
 
         <FormField
           control={form.control}

@@ -68,10 +68,12 @@ export const artists = pgTable("artists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  stageName: text("stage_name"), // Nom d'artiste / surnom
   email: text("email").notNull(),
   phone: text("phone"),
-  discipline: artisticDisciplineEnum("discipline").notNull(),
+  disciplines: text("disciplines").array(), // Multiple disciplines
   portfolio: text("portfolio"),
+  socialLinks: jsonb("social_links").$type<{ platform: string; url: string }[]>(), // Réseaux sociaux
   artisticStatement: text("artistic_statement"),
   diversityType: text("diversity_type"),
   internalNotes: text("internal_notes"),
@@ -182,6 +184,16 @@ export const emailCampaigns = pgTable("email_campaigns", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Artist Notes table (session notes with history)
+export const artistNotes = pgTable("artist_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  artistId: varchar("artist_id").notNull().references(() => artists.id, { onDelete: 'cascade' }),
+  content: text("content").notNull(),
+  sessionDate: timestamp("session_date").notNull(),
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Resources table (venues, equipment rental, services)
 export const resources = pgTable("resources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -208,6 +220,14 @@ export const artistsRelations = relations(artists, ({ many }) => ({
   applications: many(applications),
   documents: many(documents),
   tasks: many(tasks),
+  notes: many(artistNotes),
+}));
+
+export const artistNotesRelations = relations(artistNotes, ({ one }) => ({
+  artist: one(artists, {
+    fields: [artistNotes.artistId],
+    references: [artists.id],
+  }),
 }));
 
 export const interactionsRelations = relations(interactions, ({ one }) => ({
@@ -314,6 +334,13 @@ export const insertResourceSchema = createInsertSchema(resources).omit({
   updatedAt: true,
 });
 
+export const insertArtistNoteSchema = createInsertSchema(artistNotes).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  sessionDate: z.coerce.date(),
+});
+
 // Export types
 export type Artist = typeof artists.$inferSelect;
 export type InsertArtist = z.infer<typeof insertArtistSchema>;
@@ -344,6 +371,9 @@ export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
 
 export type Resource = typeof resources.$inferSelect;
 export type InsertResource = z.infer<typeof insertResourceSchema>;
+
+export type ArtistNote = typeof artistNotes.$inferSelect;
+export type InsertArtistNote = z.infer<typeof insertArtistNoteSchema>;
 
 // Outlook Calendar Event schemas (not stored in DB, used for API validation)
 export const outlookEventTimeSchema = z.object({

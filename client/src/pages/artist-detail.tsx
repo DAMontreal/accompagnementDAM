@@ -1,13 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase, Calendar as CalendarIcon, StickyNote, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Artist, Interaction, Application, Document } from "@shared/schema";
+import type { Artist, Interaction, Application, Document, ArtistNote } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import { SiInstagram, SiFacebook, SiLinkedin, SiTiktok, SiYoutube, SiSoundcloud, SiBandcamp, SiSpotify } from "react-icons/si";
+import { FaXTwitter } from "react-icons/fa6";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { AccompanimentPlanTab } from "@/components/accompaniment-plan-tab";
@@ -35,9 +42,23 @@ const interactionTypeLabels: Record<string, string> = {
   other: "Autre",
 };
 
+const socialIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  instagram: SiInstagram,
+  facebook: SiFacebook,
+  twitter: FaXTwitter,
+  linkedin: SiLinkedin,
+  tiktok: SiTiktok,
+  youtube: SiYoutube,
+  soundcloud: SiSoundcloud,
+  bandcamp: SiBandcamp,
+  spotify: SiSpotify,
+};
+
 export default function ArtistDetail() {
   const params = useParams();
   const artistId = params.id;
+  const { toast } = useToast();
+  const [noteContent, setNoteContent] = useState("");
 
   const { data: artist, isLoading: artistLoading } = useQuery<Artist>({
     queryKey: ["/api/artists", artistId],
@@ -53,6 +74,27 @@ export default function ArtistDetail() {
 
   const { data: documents, isLoading: documentsLoading } = useQuery<Document[]>({
     queryKey: ["/api/artists", artistId, "documents"],
+  });
+
+  const { data: notes, isLoading: notesLoading } = useQuery<ArtistNote[]>({
+    queryKey: ["/api/artists", artistId, "notes"],
+  });
+
+  const createNoteMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return await apiRequest("POST", `/api/artists/${artistId}/notes`, {
+        content,
+        sessionDate: new Date().toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/artists", artistId, "notes"] });
+      setNoteContent("");
+      toast({
+        title: "Note ajoutée",
+        description: "La note de session a été enregistrée.",
+      });
+    },
   });
 
   if (artistLoading) {
@@ -111,9 +153,14 @@ export default function ArtistDetail() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2" data-testid="text-artist-name">
+              <h2 className="text-2xl font-bold mb-1" data-testid="text-artist-name">
                 {artist.firstName} {artist.lastName}
               </h2>
+              {artist.stageName && (
+                <p className="text-lg text-muted-foreground mb-2" data-testid="text-artist-stagename">
+                  « {artist.stageName} »
+                </p>
+              )}
               <div className="flex flex-wrap gap-4 text-muted-foreground mb-4">
                 {artist.email && (
                   <div className="flex items-center gap-2">
@@ -128,14 +175,38 @@ export default function ArtistDetail() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" data-testid="badge-artist-discipline">
-                  {disciplineLabels[artist.discipline] || artist.discipline}
-                </Badge>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {(artist.disciplines && artist.disciplines.length > 0) ? (
+                  artist.disciplines.map((d) => (
+                    <Badge key={d} variant="secondary" data-testid={`badge-discipline-${d}`}>
+                      {disciplineLabels[d] || d}
+                    </Badge>
+                  ))
+                ) : null}
                 {artist.diversityType && (
                   <Badge variant="outline">{artist.diversityType}</Badge>
                 )}
               </div>
+              {/* Social Links */}
+              {artist.socialLinks && artist.socialLinks.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {artist.socialLinks.map((link, idx) => {
+                    const Icon = socialIcons[link.platform] || ExternalLink;
+                    return (
+                      <a
+                        key={idx}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid={`link-social-${link.platform}-${idx}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <Button data-testid="button-edit-artist">Modifier</Button>
           </div>
@@ -158,10 +229,14 @@ export default function ArtistDetail() {
 
       {/* Tabs */}
       <Tabs defaultValue="interactions" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-4xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-5xl">
           <TabsTrigger value="interactions" data-testid="tab-interactions">
             <History className="h-4 w-4 mr-2" />
             Historique
+          </TabsTrigger>
+          <TabsTrigger value="notes" data-testid="tab-notes">
+            <StickyNote className="h-4 w-4 mr-2" />
+            Notes
           </TabsTrigger>
           <TabsTrigger value="outlook" data-testid="tab-outlook">
             <Mail className="h-4 w-4 mr-2" />
@@ -225,6 +300,70 @@ export default function ArtistDetail() {
               ) : (
                 <p className="text-center py-8 text-muted-foreground">
                   Aucune interaction enregistrée
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes de Session</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Add new note */}
+              <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                <Textarea
+                  placeholder="Ajouter une note de session..."
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  className="min-h-24"
+                  data-testid="textarea-new-note"
+                />
+                <Button
+                  onClick={() => noteContent.trim() && createNoteMutation.mutate(noteContent)}
+                  disabled={!noteContent.trim() || createNoteMutation.isPending}
+                  data-testid="button-add-note"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter la note
+                </Button>
+              </div>
+
+              {/* Notes history */}
+              {notesLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
+              ) : notes && notes.length > 0 ? (
+                <div className="space-y-4">
+                  {notes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="p-4 rounded-lg border"
+                      data-testid={`note-${note.id}`}
+                    >
+                      <p className="whitespace-pre-wrap">{note.content}</p>
+                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                        <span>
+                          {format(new Date(note.sessionDate), "dd MMMM yyyy", { locale: fr })}
+                        </span>
+                        {note.createdBy && (
+                          <>
+                            <span>-</span>
+                            <span>{note.createdBy}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">
+                  Aucune note de session enregistrée
                 </p>
               )}
             </CardContent>

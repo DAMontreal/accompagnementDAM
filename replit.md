@@ -58,7 +58,11 @@ Preferred communication style: Simple, everyday language.
 - Connection pooling via `@neondatabase/serverless` with WebSocket support
 
 **Core Domain Models:**
-- **Artists**: Complete 360° profiles with contact info, artistic disciplines, portfolios, and internal notes
+- **Artists**: Complete 360° profiles with contact info, stage name, multiple artistic disciplines, social media links, portfolios, and internal notes
+  - **Stage Name**: Optional artist/performer name displayed alongside legal name
+  - **Multiple Disciplines**: Artists can select multiple disciplines (music, dance, visual arts, etc.)
+  - **Social Links**: Dynamic list of social media profiles (Instagram, Facebook, TikTok, etc.) with icons
+  - **Session Notes**: Historical notes tab with timestamped entries for tracking sessions
 - **Interactions**: Historical record of all communications (meetings, calls, emails, Calendly appointments)
 - **Accompaniment Plans**: Personalized support plans with goals and action items
 - **Opportunities**: Grant/funding opportunities with deadlines and eligibility criteria
