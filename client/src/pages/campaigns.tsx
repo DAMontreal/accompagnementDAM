@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Mail, Send, Users } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Plus, Mail, Send, Users, Pencil, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,57 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateCampaignForm } from "@/components/forms/create-campaign-form";
-import type { EmailCampaign } from "@shared/schema";
+import { EditCampaignForm } from "@/components/forms/edit-campaign-form";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { EmailCampaign, Artist } from "@shared/schema";
+
+const disciplineLabels: Record<string, string> = {
+  visual_arts: "Arts visuels",
+  music: "Musique",
+  theater: "Théâtre",
+  dance: "Danse",
+  literature: "Littérature",
+  cinema: "Cinéma",
+  digital_arts: "Arts numériques",
+  multidisciplinary: "Multidisciplinaire",
+};
 
 export default function Campaigns() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<EmailCampaign | null>(null);
+  const { toast } = useToast();
 
   const { data: campaigns, isLoading } = useQuery<EmailCampaign[]>({
     queryKey: ["/api/campaigns"],
   });
+
+  const { data: artists } = useQuery<Artist[]>({
+    queryKey: ["/api/artists"],
+  });
+
+  const getFilteredRecipientCount = (campaign: EmailCampaign) => {
+    if (!artists || !campaign.segmentCriteria) return artists?.length || 0;
+    
+    const criteria = campaign.segmentCriteria as { disciplines?: string[]; hasAccompaniment?: boolean };
+    
+    return artists.filter(artist => {
+      if (criteria.disciplines && criteria.disciplines.length > 0) {
+        const artistDisciplines = (artist as any).disciplines || [artist.discipline];
+        const hasMatchingDiscipline = criteria.disciplines.some((d: string) => 
+          artistDisciplines.includes(d)
+        );
+        if (!hasMatchingDiscipline) return false;
+      }
+      return true;
+    }).length;
+  };
+
+  const handleEditClick = (campaign: EmailCampaign) => {
+    setSelectedCampaign(campaign);
+    setEditDialogOpen(true);
+  };
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -101,18 +144,18 @@ export default function Campaigns() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      Destinataires:
+                      Destinataires filtrés:
                     </span>
                     <span className="font-medium" data-testid={`text-campaign-recipients-${campaign.id}`}>
-                      {campaign.recipientCount || 0}
+                      {getFilteredRecipientCount(campaign)} / {artists?.length || 0}
                     </span>
                   </div>
-                  {campaign.segmentCriteria && (
+                  {campaign.segmentCriteria && (campaign.segmentCriteria as any).disciplines?.length > 0 && (
                     <div className="pt-3 border-t">
                       <p className="text-xs text-muted-foreground mb-2">Critères de segmentation:</p>
                       <div className="flex flex-wrap gap-2">
-                        {campaign.segmentCriteria.disciplines?.map((d: string) => (
-                          <Badge key={d} variant="outline" className="text-xs">{d}</Badge>
+                        {(campaign.segmentCriteria as any).disciplines?.map((d: string) => (
+                          <Badge key={d} variant="outline" className="text-xs">{disciplineLabels[d] || d}</Badge>
                         ))}
                         {campaign.segmentCriteria.hasAccompaniment && (
                           <Badge variant="outline" className="text-xs">Accompagnement actif</Badge>
@@ -121,10 +164,22 @@ export default function Campaigns() {
                     </div>
                   )}
                   {!campaign.sentAt && (
-                    <Button className="w-full mt-2" size="sm" data-testid={`button-send-campaign-${campaign.id}`}>
-                      <Send className="h-4 w-4 mr-2" />
-                      Envoyer
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditClick(campaign)}
+                        data-testid={`button-edit-campaign-${campaign.id}`}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Modifier
+                      </Button>
+                      <Button className="flex-1" size="sm" data-testid={`button-send-campaign-${campaign.id}`}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Envoyer
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -146,6 +201,24 @@ export default function Campaigns() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Campaign Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la Campagne</DialogTitle>
+          </DialogHeader>
+          {selectedCampaign && (
+            <EditCampaignForm 
+              campaign={selectedCampaign}
+              onSuccess={() => {
+                setEditDialogOpen(false);
+                setSelectedCampaign(null);
+              }} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

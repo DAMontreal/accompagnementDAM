@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, CheckCircle2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Plus, Search, CheckCircle2, MoreHorizontal, ArrowRight, Check, Clock, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CreateTaskForm } from "@/components/forms/create-task-form";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Task } from "@shared/schema";
 
 const priorityColors = {
@@ -26,12 +34,47 @@ const priorityColors = {
   urgent: "bg-destructive",
 };
 
+const statusLabels = {
+  todo: "À faire",
+  in_progress: "En cours",
+  completed: "Terminé",
+  cancelled: "Annulé",
+};
+
+const statusIcons = {
+  todo: Clock,
+  in_progress: ArrowRight,
+  completed: Check,
+  cancelled: XCircle,
+};
+
 export default function Tasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const { data: tasks, isLoading } = useQuery<Task[]>({
     queryKey: ["/api/tasks"],
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ taskId, status }: { taskId: string; status: string }) => {
+      return await apiRequest("PATCH", `/api/tasks/${taskId}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Statut mis à jour",
+        description: "Le statut de la tâche a été modifié.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le statut.",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredTasks = tasks?.filter(task => {
@@ -110,13 +153,46 @@ export default function Tasks() {
                 <Card key={task.id} className="hover-elevate" data-testid={`task-card-${task.id}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Checkbox className="mt-1" data-testid={`checkbox-task-${task.id}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`h-2 w-2 rounded-full ${priorityColors[task.priority]}`} />
-                          <h3 className="font-medium leading-none" data-testid={`text-task-title-${task.id}`}>
-                            {task.title}
-                          </h3>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${priorityColors[task.priority]}`} />
+                            <h3 className="font-medium leading-none" data-testid={`text-task-title-${task.id}`}>
+                              {task.title}
+                            </h3>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-task-menu-${task.id}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "in_progress" })}
+                                data-testid={`menu-task-inprogress-${task.id}`}
+                              >
+                                <ArrowRight className="h-4 w-4 mr-2" />
+                                Mettre en cours
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "completed" })}
+                                data-testid={`menu-task-complete-${task.id}`}
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Marquer terminé
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "cancelled" })}
+                                className="text-destructive"
+                                data-testid={`menu-task-cancel-${task.id}`}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Annuler
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         {task.description && (
                           <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
@@ -125,7 +201,7 @@ export default function Tasks() {
                           {task.dueDate && (
                             <span>{format(new Date(task.dueDate), "dd MMM", { locale: fr })}</span>
                           )}
-                          {task.assignedTo && <span>• {task.assignedTo}</span>}
+                          {task.assignedTo && <span>- {task.assignedTo}</span>}
                         </div>
                       </div>
                     </div>
@@ -151,11 +227,41 @@ export default function Tasks() {
                 <Card key={task.id} className="hover-elevate border-primary" data-testid={`task-card-${task.id}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <Checkbox className="mt-1" data-testid={`checkbox-task-${task.id}`} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`h-2 w-2 rounded-full ${priorityColors[task.priority]}`} />
-                          <h3 className="font-medium leading-none">{task.title}</h3>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-2 w-2 rounded-full ${priorityColors[task.priority]}`} />
+                            <h3 className="font-medium leading-none">{task.title}</h3>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-task-menu-${task.id}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "todo" })}
+                              >
+                                <Clock className="h-4 w-4 mr-2" />
+                                Remettre à faire
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "completed" })}
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Marquer terminé
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "cancelled" })}
+                                className="text-destructive"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Annuler
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         {task.description && (
                           <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
@@ -164,7 +270,7 @@ export default function Tasks() {
                           {task.dueDate && (
                             <span>{format(new Date(task.dueDate), "dd MMM", { locale: fr })}</span>
                           )}
-                          {task.assignedTo && <span>• {task.assignedTo}</span>}
+                          {task.assignedTo && <span>- {task.assignedTo}</span>}
                         </div>
                       </div>
                     </div>
@@ -192,7 +298,30 @@ export default function Tasks() {
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="h-5 w-5 text-chart-2 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium leading-none line-through mb-2">{task.title}</h3>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <h3 className="font-medium leading-none line-through">{task.title}</h3>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-task-menu-${task.id}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "todo" })}
+                              >
+                                <Clock className="h-4 w-4 mr-2" />
+                                Remettre à faire
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => updateStatusMutation.mutate({ taskId: task.id, status: "in_progress" })}
+                              >
+                                <ArrowRight className="h-4 w-4 mr-2" />
+                                Remettre en cours
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                         {task.description && (
                           <p className="text-sm text-muted-foreground mb-2 line-through">{task.description}</p>
                         )}
