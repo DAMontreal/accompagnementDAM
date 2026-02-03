@@ -1,12 +1,13 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase, Calendar as CalendarIcon, StickyNote, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Mail, Phone, FileText, History, Target, Briefcase, Calendar as CalendarIcon, StickyNote, ExternalLink, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Artist, Interaction, Application, Document, ArtistNote } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +22,7 @@ import { AccompanimentPlanTab } from "@/components/accompaniment-plan-tab";
 import { DocumentsTab } from "@/components/documents-tab";
 import { OutlookEmailArchive } from "@/components/outlook-email-archive";
 import { OutlookCalendar } from "@/components/outlook-calendar";
+import { EditArtistForm } from "@/components/forms/edit-artist-form";
 
 const disciplineLabels: Record<string, string> = {
   visual_arts: "Arts visuels",
@@ -59,6 +61,7 @@ export default function ArtistDetail() {
   const artistId = params.id;
   const { toast } = useToast();
   const [noteContent, setNoteContent] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: artist, isLoading: artistLoading } = useQuery<Artist>({
     queryKey: ["/api/artists", artistId],
@@ -208,7 +211,10 @@ export default function ArtistDetail() {
                 </div>
               )}
             </div>
-            <Button data-testid="button-edit-artist">Modifier</Button>
+            <Button onClick={() => setIsEditDialogOpen(true)} data-testid="button-edit-artist">
+              <Pencil className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
           </div>
 
           {artist.artisticStatement && (
@@ -431,6 +437,20 @@ export default function ArtistDetail() {
           <DocumentsTab artistId={artistId!} documents={documents} isLoading={documentsLoading} />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier l'artiste</DialogTitle>
+          </DialogHeader>
+          {artist && (
+            <EditArtistForm 
+              artist={artist} 
+              onSuccess={() => setIsEditDialogOpen(false)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
